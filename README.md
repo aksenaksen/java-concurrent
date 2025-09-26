@@ -98,7 +98,80 @@ LockSupport.unpark(thread);  // 스레드 깨우기
 - `wait()`/`notify()`보다 더 유연한 스레드 제어
 - 인터럽트에 응답 가능
 
-### 6. 스레드 안전한 자료구조
+### 6. 생산자-소비자 패턴 (`thread/bounded/`)
+
+#### Bounded Queue 구현
+여러 버전의 경계가 있는 큐(Bounded Queue) 구현을 통한 생산자-소비자 패턴 학습:
+
+#### BoundedQueueV1: 단순 동기화 (`BoundedQueueV1.java:18`)
+```java
+@Override
+public synchronized void put(String data) {
+    if (queue.size() == max) {
+        log("[put] 큐가 가득 참, 버린다.: "+ data);
+        return;
+    }
+    queue.offer(data);
+}
+```
+- 큐가 가득 찬 경우 데이터를 버리는 방식
+- 간단하지만 데이터 손실 발생
+
+#### BoundedQueueV2-V6: 대기 메커니즘
+- **V2**: `wait()`/`notify()` 사용한 블로킹 방식
+- **V3**: `notifyAll()` 사용으로 모든 대기 스레드 깨우기
+- **V4**: `InterruptedException` 처리 개선
+- **V5**: `Lock`과 `Condition` 사용
+- **V6**: `BlockingQueue` 인터페이스 활용
+
+### 7. CAS와 원자적 연산 (`thread/cas/`)
+
+#### Compare-And-Swap 연산
+락 없는 동기화를 위한 CAS(Compare-And-Swap) 연산 학습:
+
+#### 다양한 구현 방식 비교
+- **BasicInteger**: 동기화 없음 - 경쟁 상태 발생
+- **VolatileInteger**: volatile 키워드 사용 - 가시성 보장, 원자성 미보장
+- **SyncInteger**: synchronized 사용 - 완전한 동기화
+- **MyAtomicInteger**: `AtomicInteger` 사용 (`MyAtomicInteger.java:7`)
+
+```java
+private AtomicInteger value = new AtomicInteger(0);
+
+@Override
+public void increment() {
+    value.incrementAndGet();  // CAS 기반 원자적 연산
+}
+```
+
+#### CAS의 장점
+- 락 없는(lock-free) 동기화
+- 높은 성능과 확장성
+- 데드락 방지
+
+### 8. 스레드 안전한 컬렉션 (`thread/collection/`)
+
+#### 리스트 구현체 비교 학습
+
+#### BasicList vs SyncList
+- **BasicList**: 스레드 안전하지 않음
+- **SyncList**: `synchronized` 키워드로 동기화 (`SyncList.java:21`)
+
+```java
+@Override
+public synchronized void add(Object o) {
+    elementData[size] = o;
+    Thread.sleep(100);  // 동시성 문제 시뮬레이션
+    size++;
+}
+```
+
+#### SyncProxyList: 데코레이터 패턴
+기존 리스트를 감싸서 동기화 기능 추가:
+- 기존 코드 수정 없이 동기화 기능 추가
+- 프록시 패턴을 통한 투명한 동기화
+
+### 9. 스레드 안전한 자료구조
 
 #### ConcurrentLinkedQueue: `MyPrinterV1.java:30`
 ```java
@@ -106,7 +179,4 @@ Queue<String> jobQueue = new ConcurrentLinkedQueue<>();
 ```
 - 락 없는(lock-free) 스레드 안전 큐
 - 프로듀서-컨슈머 패턴 구현
-
-
-
 
